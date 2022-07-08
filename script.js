@@ -1,0 +1,376 @@
+      
+
+        var url;// = "https://mksaude.caurn.com.br/mksaude/ws/";
+        //var url = "http://152.250.244.237:8410/mksaude/ws/";
+
+        var countChamada = 0;
+        var som = document.getElementById("som");	
+        var idConsultorio;
+        var idVisor;
+		var bxSenha;
+        var aSenhasChamar = [];
+        var aUltimosChamados = [];
+		var aBaixar = [];
+        var objChamar = {};   
+        var objConsultorio = {};
+
+        var tabelaChamadaSenha = 
+            '<table style="position: fixed; top: 45px; left: 0; right: 0; height: 210px;  width: 100%;">'+
+                '<tr>'+
+                    '<td style="width: 350px; font-size: 100px; text-align: center; padding: 5px;" id="cellSenha">'+
+                    '</td>'+
+                    '<td style="font-size: 100px; padding: 5px;" id="cellSala">'+                        
+                    '</td>'+
+                '</tr>'+
+            '</table>';
+        var tabelaChamadaNome = 
+            '<table style="position: fixed; top: 45px; left: 0; right: 0; height: 200px;  width: 100%;">'+
+                '<tr>'+
+                    '<td style="font-size: 50px; padding: 5px; width: 100%; height: 90px;" id="cellNome">'+
+                    '</td>'+                    
+                '</tr>'+
+                '<tr>'+
+                    '<td style="font-size: 50px; padding: 5px; width: 100%; height: 90px;" id="cellSala2">'+
+                    '</td>'+                    
+                '</tr>'+
+            '</table>';
+
+        inicializar();        
+
+        function inicializar() {
+            som.load();						
+			som.muted = false;
+					
+            idConsultorio = getParameterByName('consid');
+            idVisor = getParameterByName('visid');
+			bxSenha = getParameterByName('bxsenha');
+			
+			if (!bxSenha) {
+				bxSenha = 'S';
+			}
+            carregarServidor();
+        }
+        function carregarServidor() {
+            var xhr = new XMLHttpRequest();
+            xhr.addEventListener("readystatechange", function () {
+                if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+                    url = this.responseText;
+                    carregarDadosConsultorio();
+                    setTimeout('carregarSenhasInativar()', 20000);
+                }
+            });
+            xhr.open("GET", "servidor.txt");
+            xhr.setRequestHeader("cache-control", "no-cache");
+            xhr.setRequestHeader("content-type", "text/plain");
+            xhr.send();
+        }
+
+        function carregarDadosConsultorio() {
+            var xhr = new XMLHttpRequest();
+            xhr.addEventListener("readystatechange", function (event) {
+                if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+                    if (semErros(this.responseText)) {
+                        objConsultorio = JSON.parse(this.responseText);
+                        if (objConsultorio.vinculadoEstabelecimento === true) {
+                            document.getElementById('divVisor').innerHTML = '<strong>O consultório informado faz parte de um estabelecimento!</strong>';
+                            document.getElementById('divVisor').style.position = 'fixed';
+                            document.getElementById('divVisor').style.top = '50';
+                            document.getElementById('divVisor').style.left = '0';
+                            document.getElementById('divVisor').style.right = '0';
+                            document.getElementById('divVisor').style.border = 'solid #d3d3d3 2px';
+                            document.getElementById('divVisor').style.textAlign = 'center';
+                            document.getElementById('divVisor').style.fontSize ='30px';
+                            document.getElementById('divVisor').style.fontSize ='30px';
+                            document.getElementById('divVisor').style.padding = '5px';
+                            document.getElementById('divVisor').style.backgroundColor ='#ff6d6d';
+                            return;
+                        }
+                        carregarDadosVisor();
+                        carregarInativas();
+						while (new Date().getMilliseconds() > 0) {}
+                        carregarSenhaChamar();
+                    }
+                }
+            });
+                xhr.open("GET", url + "consultorio/byid/" + idConsultorio);
+                xhr.setRequestHeader("content-type", "application/json");
+                xhr.send();
+        }
+
+        function carregarDadosVisor() {
+            var xhr = new XMLHttpRequest();
+            xhr.addEventListener("readystatechange", function () {
+                if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+                    if (semErros(this.responseText)) {
+                        var objVisor = JSON.parse(this.responseText);
+                        document.getElementById('divVisor').innerHTML = '<strong>' + objVisor.nome +
+                            '</strong>';
+                    }
+                }
+            });
+            xhr.open("GET", url + "visor/byid/" + idVisor);
+            xhr.setRequestHeader("content-type", "application/json");
+            xhr.send();
+        }
+
+        function getParameterByName(name, url) {
+            if (!url) url = window.location.href;
+            name = name.replace(/[\[\]]/g, "\\$&");
+            var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+                results = regex.exec(url);
+            if (!results) return null;
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, " "));
+        }
+
+        function carregarInativas() {            
+            var xhr = new XMLHttpRequest();            
+            xhr.addEventListener("readystatechange", function () {
+                if (this.readyState === 4) {          
+                    if (semErros(this.responseText)) {          
+                        var senhasInativas = JSON.parse(this.responseText);                    
+                        var tabelaInativos = document.getElementById('tableInativos');
+                        var corpoTabela = '';
+                        for (i = 0; i < senhasInativas.length; i++) {
+                            corpoTabela += '<tr style="vertical-align:top;"><td style="border: solid #d3d3d3 1px; text-align: center;">'+senhasInativas[i].senha+'</td></tr>';
+                        }                    
+                        tabelaInativos.innerHTML = corpoTabela;
+                    }
+                }
+            });            
+            xhr.open("GET", url+"visor/chamadasinativas/"+idConsultorio);
+            xhr.setRequestHeader("content-type", "application/json");            
+            xhr.send();
+        }
+
+        function carregarSenhaChamar() {		
+            var xhr = new XMLHttpRequest();
+            xhr.addEventListener("readystatechange", function () {
+                if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+                    if (semErros(this.responseText)) {
+                        var dados = JSON.parse(this.responseText);						
+                        if (dados.length > 0) {								
+							var chamou = false;
+							for (i = 0; i < dados.length; i++) {
+								var y = -1;
+								for (j = 0; j < aBaixar.length; j++) {
+									if (aBaixar[j].id == dados[i].id) {
+										y = j;
+										break;
+									}
+								}								
+								if (y == -1) {									
+								    chamou = true;									
+									objChamar = dados[i];
+									som.load();								
+									som.play();
+									som.muted = false;                                
+									chamarSenha();								
+									break;
+								}
+							}								                                							
+							if (chamou == false) {
+								objChamar = null;								
+								setTimeout('carregarSenhaChamar()', 1500);
+							}                            
+                        } else {
+							objChamar = null;
+                            limparSenhaChamada();
+                            setTimeout('carregarSenhaChamar()', 1500);
+                        }
+                        listarUltimosChamados();
+                    } else {
+                        setTimeout('carregarSenhaChamar()', 1500);
+                    }
+                }
+            });
+            xhr.open("GET", url + "visor/chamar/" + idVisor + "?" + (new Date()).getTime(), true);
+            xhr.setRequestHeader("content-type", "application/json");
+            xhr.send();
+        }
+
+        function limparSenhaChamada() {
+			if (objChamar != null) {
+				if ((objConsultorio.params.visor_nome == 'S') && (objChamar.nome_paciente != null)) {
+					document.getElementById('cellNome').innerHTML = '';
+					document.getElementById('cellSala2').innerHTML = '';
+				} else {
+					if (document.getElementById('cellSenha') != null) {
+						document.getElementById('cellSenha').innerHTML = '';
+						document.getElementById('cellSala').innerHTML = '';
+					}
+				}
+			}
+        }
+
+        function listarUltimosChamados() {
+            var tabela = document.getElementById('tableUltimos');
+            var corpoTabela = '';
+            for (i = 0; i < aUltimosChamados.length; i++) {
+
+                if ((objConsultorio.params.visor_nome == 'S') && (aUltimosChamados[i].nome_paciente != null)) {
+                    corpoTabela +=
+                        '<tr style="vertical-align:top;"><td style="font-size: 30px; padding: 20px; border: solid #d3d3d3 1px; color: ' +
+                        aUltimosChamados[i].cor_letra_token + '; background-color: ' + aUltimosChamados[i]
+                        .cor_fundo_token + ' ">' + aUltimosChamados[i].nome_paciente + ' - (' + aUltimosChamados[i]
+                        .nome_sala + ')</td></tr>';
+                } else {
+                    corpoTabela +=
+                        '<tr style="vertical-align:top;"><td style="vertical-align: middle; border: solid #d3d3d3 1px; text-align: center; color: ' +
+                        aUltimosChamados[i].cor_letra_token + '; background-color: ' +
+                        aUltimosChamados[i].cor_fundo_token + ' ">' + aUltimosChamados[i].senha +
+                        '</td><td style="border: solid #d3d3d3 1px; color: ' + aUltimosChamados[i]
+                        .cor_letra_token + '; background-color: ' + aUltimosChamados[i].cor_fundo_token +
+                        ' ">' + aUltimosChamados[i].nome_sala + '</td></tr>';
+                }
+            }
+            tabela.innerHTML = corpoTabela;
+        }
+
+        function chamarSenha() {			
+            if ((objConsultorio.params.visor_nome == 'S') && (objChamar.nome_paciente != null)) {
+                document.getElementById('divTabelaSenhaNome').innerHTML = tabelaChamadaNome;
+                document.getElementById('cellNome').style.color = objChamar.cor_letra_token;
+                document.getElementById('cellNome').style.backgroundColor = objChamar.cor_fundo_token;
+                document.getElementById('cellSala2').style.color = objChamar.cor_letra_token;
+                document.getElementById('cellSala2').style.backgroundColor = objChamar.cor_fundo_token;
+                if (countChamada % 2 !== 0) {
+                    document.getElementById('cellNome').innerHTML = '';
+                } else {
+                    document.getElementById('cellNome').innerHTML = '<strong>' + objChamar.nome_paciente + '</strong>';
+                }
+                /*if (countChamada % 2 !== 0) {
+                    document.getElementById('cellSala2').innerHTML = '';
+                } else {*/
+                document.getElementById('cellSala2').innerHTML = objChamar.nome_sala;
+                //}    
+            } else {
+                document.getElementById('divTabelaSenhaNome').innerHTML = tabelaChamadaSenha;
+                document.getElementById('cellSenha').style.color = objChamar.cor_letra_token;
+                document.getElementById('cellSenha').style.backgroundColor = objChamar.cor_fundo_token;
+                document.getElementById('cellSala').style.color = objChamar.cor_letra_token;
+                document.getElementById('cellSala').style.backgroundColor = objChamar.cor_fundo_token;
+                if (countChamada % 2 !== 0) {
+                    document.getElementById('cellSenha').innerHTML = '';
+                } else {
+                    document.getElementById('cellSenha').innerHTML = '<strong>' + objChamar.senha + '</strong>';
+                }
+                if (countChamada % 2 !== 0) {
+                    document.getElementById('cellSala').innerHTML = '';
+                } else {
+                    document.getElementById('cellSala').innerHTML = objChamar.nome_sala;
+                }
+            }
+            countChamada++;
+            if (countChamada < 10) {				
+                setTimeout('chamarSenha()', 1000);				
+            } else {				
+                if ((objConsultorio.params.visor_nome == 'S') && (objChamar.nome_paciente != null)) {
+                    document.getElementById('cellNome').style.color = '';
+                    document.getElementById('cellNome').style.backgroundColor = '';
+                    document.getElementById('cellSala2').style.color = '';
+                    document.getElementById('cellSala2').style.backgroundColor = '';
+                } else {
+                    document.getElementById('cellSenha').style.color = '';
+                    document.getElementById('cellSenha').style.backgroundColor = '';
+                    document.getElementById('cellSala').style.color = '';
+                    document.getElementById('cellSala').style.backgroundColor = '';
+                }
+                limparSenhaChamada();
+				if (bxSenha == 'S') {				   
+				   baixarSenha(objChamar);					   
+				} 
+				setTimeout('carregarSenhaChamar()', 1500);				   				 
+				if ((aUltimosChamados.length == 0) || (aUltimosChamados[0].id != objChamar.id)) {
+					aUltimosChamados.splice(0, 0, objChamar);
+					listarUltimosChamados();
+				}
+                countChamada = 0;
+            }
+        }
+ 
+        function rgbToHex(color) {
+            color = "000000" + parseInt(color).toString(16);
+            color = color.substr(-"000000".length);
+            return "#" + color;
+        }
+
+        function baixarSenha(objSenhaChamada) {
+			var objSenhaChamadaTemp = JSON.parse(JSON.stringify(objSenhaChamada));		
+			
+			aBaixar.push(objSenhaChamadaTemp);			
+								
+			var xhr = new XMLHttpRequest();
+			xhr.addEventListener("readystatechange", function () {
+				if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+					if (semErros(this.responseText)) {													
+						for (i = aBaixar.length - 1; i >= 0; i--) { 										
+							if (aBaixar[i].id == objSenhaChamadaTemp.id) {
+								aBaixar.splice(i, 1);
+							}
+						}								
+					} 
+				}
+			});
+			xhr.open("POST", url + "visor/chamousenha", true);
+			xhr.setRequestHeader("content-type", "application/json");
+			xhr.send(JSON.stringify(objSenhaChamadaTemp));									
+        }
+
+        function carregarSenhasInativar() {
+            var xhr = new XMLHttpRequest();
+            xhr.addEventListener("readystatechange", function () {
+                if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+                    if (semErros(this.responseText)) {
+                        var senhasInativar = JSON.parse(this.responseText);						
+                        if (senhasInativar.length > 0) {							
+                            for (i = 0; i < senhasInativar.length; i++) {
+                                var dataOperacao = senhasInativar[i].dt_operacao;
+                                var horaOperacao = senhasInativar[i].hr_operacao;
+                                var minutosAdicionar = 3;
+                                var data;
+                                dataOperacao = dataOperacao.substr(6, 4) + '-' + dataOperacao.substr(3, 2) +
+                                    '-' + dataOperacao.substr(0, 2);
+                                data = new Date(dataOperacao + 'T' + horaOperacao + 'Z');
+                                data = new Date(data.getTime() + minutosAdicionar * 60000);
+                                senhasInativar[i].data_js = data.getTime();
+                            }							
+                            inativarSenhas(senhasInativar);							
+                        } else {						
+                            setTimeout('carregarSenhasInativar()', 20000);
+                        }
+                    } else {
+                        setTimeout('carregarSenhasInativar()', 20000);
+                    }
+                }
+            });
+            xhr.open("GET", url + "visor/getsenhasinativar/" + idVisor + "?" + (new Date()).getTime());
+            xhr.setRequestHeader("content-type", "application/json");
+            xhr.send();
+        }
+
+        function inativarSenhas(senhasInativar) {
+            var xhr = new XMLHttpRequest();
+            xhr.addEventListener("readystatechange", function () {
+                if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+                    if (semErros(this.responseText)) {
+                        carregarInativas();
+                        setTimeout('carregarSenhasInativar()', 20000);
+                    } else {
+                        setTimeout('carregarSenhasInativar()', 20000);
+                    }
+                }
+            });
+            xhr.open("POST", url + "visor/inativarsenhas/" + idConsultorio);
+            xhr.setRequestHeader("content-type", "application/json");
+            xhr.send(JSON.stringify(senhasInativar));
+        }
+
+        function semErros(response) {
+            if ((response != null) && (JSON.parse(response) != null) && (JSON.parse(response).erro != null)) {
+                return false;
+            } else {
+                return true;
+            }
+        }
+    

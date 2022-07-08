@@ -1,0 +1,75 @@
+#painel1 {
+    vertical-align: top;
+    font-size: 0pt;
+    box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.300);
+}
+
+.paciente {
+    display: inline-block;
+    margin-top: 10pt;
+    color: red;
+    text-align: center;
+    width: 50%;
+    font-size: 30pt;
+    box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.300);
+
+}
+
+.consultorio {
+    display: inline-block;
+    margin-top: 5pt;
+    color: red;
+    text-align: center;
+    width: 50%;
+    font-size: 30pt;
+    box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.300);
+
+
+
+}
+
+.histchamada {
+
+    margin-top: 10%;
+    color: red;
+    box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.300);
+    font-size: 30pt;
+    text-align: center;
+    border-radius: 2pt;
+}
+
+#dthr {
+    display: inline-block;
+    border: solid;
+    font-weight: bold;
+    margin-top: 200pt;
+    box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.300);
+}
+
+#msg {
+
+
+    font-weight: bold;
+    margin-top: 200pt;
+    box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.300);
+}
+
+h1 {
+    margin-left: auto;
+    margin-top: auto;
+    font-size: 30pt;
+    text-align: center;
+
+}
+
+.logo {
+    display: inline-block;
+}
+
+#cabecalho {
+    margin-left: 30%;
+    text-align: center;
+    display: inline-block;
+    
+
+}
